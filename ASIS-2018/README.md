@@ -282,3 +282,4 @@ p.sendline(payload)
 p.interactive() # got shell
 p.close()
 ```
+![alt text](./images/flag.png)
